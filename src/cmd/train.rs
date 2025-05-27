@@ -10,8 +10,8 @@ use crate::{
     data::{idg::make_input_data_vector, types::LightSample},
     db::LightState,
     mlp::{
-        activationfns::LOGISTIC,
         config::{MLPConfig, TrainingState},
+        fns::LOGISTIC,
         mlp::MLP,
     },
 };

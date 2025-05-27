@@ -155,7 +155,7 @@ mod test {
 
         let mut mlp = MLP::new(MLPConfig {
             layers: vec![2, 3, 1],
-            activation: mlp::activationfns::LOGISTIC,
+            activation: mlp::fns::LOGISTIC,
             learning_rate: 0.5,
             training_state_updated: None,
         });
@@ -182,7 +182,7 @@ mod test {
 
         let mut mlp = MLP::new(MLPConfig {
             layers: vec![2, 3, 1],
-            activation: mlp::activationfns::LOGISTIC,
+            activation: mlp::fns::LOGISTIC,
             learning_rate: 0.5,
             training_state_updated: None,
         });

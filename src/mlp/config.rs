@@ -1,6 +1,6 @@
 use std::default;
 
-use super::activationfns::Activation;
+use super::fns::MLPFunc;
 use serde::{Deserialize, Serialize};
 
 pub struct TrainingState {
@@ -13,7 +13,7 @@ pub struct TrainingState {
 pub struct MLPConfig {
     pub layers: Vec<usize>,
     #[serde(skip)]
-    pub activation: Activation,
+    pub activation: MLPFunc,
     pub learning_rate: f64,
     // Optional callback for training state updates
     #[serde(skip)]
