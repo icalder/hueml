@@ -55,7 +55,7 @@ fn test_light_time_series_generator_with_single_input_event_produces_no_result()
 #[test]
 fn test_light_time_series_generator_with_two_input_events_less_than_one_sample_interval_apart_produces_one_result()
  {
-    let mut tsg = LightTimeSeriesGenerator::default();
+    let mut tsg = LightTimeSeriesGenerator::default().with_sample_interval_mins(5);
     tsg.event(make_event("1", "2023-01-01 16:44:00", true));
     tsg.event(make_event("2", "2023-01-01 16:49:00", false));
     assert_eq!(
@@ -67,7 +67,7 @@ fn test_light_time_series_generator_with_two_input_events_less_than_one_sample_i
 #[test]
 fn test_light_time_series_generator_with_two_input_events_one_sample_interval_apart_produces_one_result()
  {
-    let mut tsg = LightTimeSeriesGenerator::default();
+    let mut tsg = LightTimeSeriesGenerator::default().with_sample_interval_mins(5);
     tsg.event(make_event("1", "2023-01-01 16:44:00", true));
     tsg.event(make_event("2", "2023-01-01 16:50:00", false));
     assert_eq!(
@@ -79,7 +79,7 @@ fn test_light_time_series_generator_with_two_input_events_one_sample_interval_ap
 #[test]
 fn test_light_time_series_generator_with_two_input_events_just_over_one_sample_interval_apart_produces_two_results()
  {
-    let mut tsg = LightTimeSeriesGenerator::default();
+    let mut tsg = LightTimeSeriesGenerator::default().with_sample_interval_mins(5);
     tsg.event(make_event("1", "2023-01-01 16:44:00", true));
     tsg.event(make_event("2", "2023-01-01 16:50:05", false));
     assert_eq!(
@@ -96,7 +96,7 @@ fn test_light_time_series_generator_with_two_input_events_just_over_one_sample_i
 #[test]
 fn test_light_time_series_generator_with_two_input_events_more_one_sample_interval_apart_produces_multiple_results()
  {
-    let mut tsg = LightTimeSeriesGenerator::default();
+    let mut tsg = LightTimeSeriesGenerator::default().with_sample_interval_mins(5);
     tsg.event(make_event("1", "2023-01-01 16:44:00", true));
     tsg.event(make_event("2", "2023-01-01 17:01:00", false));
     assert_eq!(
@@ -120,7 +120,7 @@ fn test_light_time_series_generator_with_two_input_events_more_one_sample_interv
 
 #[test]
 fn test_light_time_series_generator_resumes_after_waiting_for_a_new_event() {
-    let mut tsg = LightTimeSeriesGenerator::default();
+    let mut tsg = LightTimeSeriesGenerator::default().with_sample_interval_mins(5);
     tsg.event(make_event("1", "2023-01-01 16:44:00", true));
     tsg.event(make_event("2", "2023-01-01 16:50:05", false));
     assert_eq!(
