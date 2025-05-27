@@ -3,11 +3,9 @@ use ndarray_rand::RandomExt;
 use ndarray_rand::rand_distr::Uniform;
 use serde::{Deserialize, Serialize};
 
-use super::config::{MLPConfig, TrainingState};
+use crate::mlp::fns;
 
-fn softmax(z: &Array2<f64>) -> Array2<f64> {
-    z.exp() / z.exp().sum()
-}
+use super::config::{MLPConfig, TrainingState};
 
 // Neural Network From Scratch: No Pytorch & Tensorflow; just pure math | 30 min theory + 30 min coding
 // https://youtu.be/A83BbHFoKb8?si=9zzxB-IFyPYYwV9c
@@ -70,7 +68,7 @@ impl MLP {
             let zn = &self.weights[i].dot(&an) + &self.biases[i];
             an = zn.mapv(|v| (self.config.activation.function)(&v));
             if i == self.config.layers.len() - 1 {
-                an = softmax(&an);
+                an = fns::softmax(&an);
             }
             self.a.push(an.clone());
         }
@@ -127,21 +125,7 @@ impl MLP {
 
 #[cfg(test)]
 mod test {
-    use ndarray::Array;
-
     use crate::mlp::{self, config::MLPConfig, mlp::MLP};
-
-    #[test]
-    fn test_softmax() {
-        let z = Array::from_shape_vec((3, 1), vec![1.0, 2.0, 3.0]).unwrap();
-        let result = mlp::mlp::softmax(&z);
-        let expected =
-            Array::from_shape_vec((3, 1), vec![0.09003057, 0.24472847, 0.66524096]).unwrap();
-        assert_eq!(result.shape(), expected.shape());
-        for i in 0..result.len() {
-            assert!((result[[i, 0]] - expected[[i, 0]]).abs() < 1e-6);
-        }
-    }
 
     #[test]
     fn test_mlp_serialize_to_file() {
