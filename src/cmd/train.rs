@@ -68,7 +68,7 @@ pub async fn run(args: &TrainArgs) -> Result<(), ImportError> {
     for le in res.iter() {
         let input_vec = make_input_data_vector(le);
         inputs.push(input_vec);
-        targets.push(vec![le.on(), le.off()]);
+        targets.push(vec![le.on()]);
     }
 
     let mut mlp = MLP::new(MLPConfig {

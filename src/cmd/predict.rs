@@ -49,11 +49,7 @@ pub async fn run(args: &PredictArgs) -> Result<(), ImportError> {
     for le in res.iter() {
         let input_vec = make_input_data_vector(le);
         let output = mlp.feed_forward(input_vec);
-        let prediction = if output[[0, 0]] > output[[1, 0]] {
-            "on"
-        } else {
-            "off"
-        };
+        let prediction = if output[[0, 0]] > 0.5 { "on" } else { "off" };
         count += 1;
         if prediction == "on" && le.state == LightState::On
             || prediction == "off" && le.state == LightState::Off

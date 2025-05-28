@@ -46,6 +46,16 @@ impl MLP {
         }
     }
 
+    fn outputfn(&self) -> fn(&Array2<f64>) -> Array2<f64> {
+        if let Some(l) = self.config.layers.last() {
+            // Networks with a single output neuron use sigmoid
+            if *l == 1 {
+                return fns::sigmoid;
+            }
+        }
+        fns::softmax
+    }
+
     pub fn load(
         path: &str,
         training_state_updated: Option<fn(TrainingState)>,
@@ -56,6 +66,14 @@ impl MLP {
         Ok(mlp)
     }
 
+    // 3 layers e.g. 2[x],3[h],1[y]
+    // w1 from x to the hidden layer
+    // w2 from hidden layer to output
+    // z1 = w1 * x + b1
+    // a1 = f(z1)
+    // z2 = w2 * a1 + b2
+    // y = fout(z2)
+
     pub fn feed_forward(&mut self, inputs: Vec<f64>) -> Array2<f64> {
         assert!(
             self.config.layers[0] == inputs.len(),
@@ -63,12 +81,12 @@ impl MLP {
         );
 
         let mut an = Array::from_shape_vec((self.config.layers[0], 1), inputs).unwrap();
-        self.a = vec![an.clone()];
+        self.a = vec![];
         for i in 0..self.config.layers.len() - 1 {
             let zn = &self.weights[i].dot(&an) + &self.biases[i];
             an = zn.mapv(|v| (self.config.activation.function)(&v));
             if i == self.config.layers.len() - 1 {
-                an = fns::softmax(&an);
+                an = self.outputfn()(&an);
             }
             self.a.push(an.clone());
         }
@@ -79,9 +97,8 @@ impl MLP {
         let mut mse: f64 = 0.0;
         for i in 1..=epochs {
             for j in 0..inputs.len() {
-                let outputs = self.feed_forward(inputs[j].clone());
+                self.feed_forward(inputs[j].clone());
                 mse = self.back_propagate(
-                    outputs,
                     Array::from_shape_vec(
                         (self.config.layers[self.config.layers.len() - 1], 1),
                         targets[j].clone(),
@@ -101,19 +118,55 @@ impl MLP {
         }
     }
 
-    fn back_propagate(&mut self, outputs: Array2<f64>, targets: Array2<f64>) -> f64 {
-        let mut errors = targets - &outputs;
-        let mut gradients = outputs.map(self.config.activation.derivative);
-        for i in (0..self.config.layers.len() - 1).rev() {
-            gradients = gradients * (&errors).mapv(|v| v * self.config.learning_rate);
-            self.weights[i] += &gradients.dot(&self.a[i].t());
-            self.biases[i] += &gradients;
-            errors = self.weights[i].t().dot(&errors);
-            gradients = self.a[i].map(self.config.activation.derivative);
+    // fn back_propagate(&mut self, outputs: Array2<f64>, targets: Array2<f64>) -> f64 {
+    //     let mut errors = targets - &outputs;
+    //     let mut gradients = outputs.map(self.config.activation.derivative);
+    //     for i in (0..self.config.layers.len() - 1).rev() {
+    //         gradients = gradients * (&errors).mapv(|v| v * self.config.learning_rate);
+    //         self.weights[i] += &gradients.dot(&self.a[i].t());
+    //         self.biases[i] += &gradients;
+    //         errors = self.weights[i].t().dot(&errors);
+    //         gradients = self.a[i].map(self.config.activation.derivative);
+    //     }
+    //     // return mean-square error
+    //     errors = errors.mapv(|x| x * x);
+    //     errors.sum() / errors.len() as f64
+    // }
+
+    // 3 layers e.g. 2[x],3[h],1[y]
+    // w1 from x to the hidden layer
+    // w2 from hidden layer to output
+    // z1 = w1 * x + b1
+    // a1 = f(z1)
+    // z2 = w2 * a1 + b2
+    // y = fout(z2)
+
+    // https://drive.google.com/file/d/1QP64p8MGBfTHwucKCRFJxTRHfHdl9JLU/view
+    fn back_propagate(&mut self, y: Array2<f64>) -> f64 {
+        // i is used to index a[] and w[] - these have size nlayers - 1 i.e. 0 .. nlayers - 2
+        let mut i = self.config.layers.len() - 2;
+
+        let mut dz = &self.a[i] - &y;
+        let mut dw = dz.dot(&self.a[i - 1].t());
+        let mut db = dz.sum();
+        self.weights[i] = &self.weights[i] - dw * self.config.learning_rate;
+        self.biases[i] -= db * self.config.learning_rate;
+
+        i -= 1;
+        while i > 0 {
+            // we need the derivative of the activation fn of the previous z layer
+            let z = &self.weights[i].dot(&self.a[i]) + &self.biases[i];
+            dz = self.weights[i + 1].t().dot(&dz)
+                * z.mapv(|x| (self.config.activation.derivative)(&x));
+            dw = dz.dot(&self.a[i].t());
+            db = dz.sum();
+            self.weights[i] = &self.weights[i] - dw * self.config.learning_rate;
+            self.biases[i] -= db * self.config.learning_rate;
+            i -= 1
         }
-        // return mean-square error
-        errors = errors.mapv(|x| x * x);
-        errors.sum() / errors.len() as f64
+
+        dz = dz.mapv(|x| x * x);
+        dz.sum() / dz.len() as f64
     }
 
     pub fn dump(&self, path: &str) -> Result<(), std::io::Error> {

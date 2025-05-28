@@ -6,6 +6,10 @@ pub fn softmax(z: &Array2<f64>) -> Array2<f64> {
     z.exp() / z.exp().sum()
 }
 
+pub fn sigmoid(z: &Array2<f64>) -> Array2<f64> {
+    z.mapv(|v| (LOGISTIC.function)(&v))
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct MLPFunc {
     pub function: fn(&f64) -> f64,
