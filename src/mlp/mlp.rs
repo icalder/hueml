@@ -18,7 +18,8 @@ pub struct MLP {
     config: MLPConfig,
     weights: Vec<Array2<f64>>,
     biases: Vec<Array2<f64>>,
-    // Use to store hidden layer [A] values
+    // Used to store hidden layer [A] values
+    #[serde(skip)]
     a: Vec<Array2<f64>>,
 }
 
