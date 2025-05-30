@@ -1,7 +1,7 @@
 use std::default;
 
-use super::fns::MLPFunc;
-use serde::{Deserialize, Serialize};
+use super::fns::{ActivationFnTypes, MLPFunc};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 pub struct TrainingState {
     pub total_epochs: u32,
@@ -12,7 +12,10 @@ pub struct TrainingState {
 #[derive(Serialize, Deserialize)]
 pub struct MLPConfig {
     pub layers: Vec<usize>,
-    #[serde(skip)]
+    #[serde(
+        serialize_with = "activation_serializer",
+        deserialize_with = "activation_deserializer"
+    )]
     pub activation: MLPFunc,
     pub learning_rate: f64,
     // Optional callback for training state updates
@@ -30,4 +33,24 @@ impl Default for MLPConfig {
             training_state_updated: None,
         }
     }
+}
+
+fn activation_serializer<S>(activation: &MLPFunc, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_u8(activation.fntype as u8)
+}
+
+fn activation_deserializer<'de, D>(deserializer: D) -> Result<MLPFunc, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let e: u8 = Deserialize::deserialize(deserializer)?;
+    ActivationFnTypes::try_from(e)
+        .map_err(serde::de::Error::custom)
+        .and_then(|fntype| match fntype {
+            ActivationFnTypes::Logistic => Ok(MLPFunc::default()),
+            ActivationFnTypes::Tanh => Ok(super::fns::TANH),
+        })
 }

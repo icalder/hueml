@@ -57,6 +57,7 @@ impl MLP {
         fns::softmax
     }
 
+    // TODO serialize activation function so it doesn't need to be passed in
     pub fn load(
         path: &str,
         training_state_updated: Option<fn(TrainingState)>,
@@ -121,21 +122,6 @@ impl MLP {
         }
     }
 
-    // fn back_propagatex(&mut self, outputs: Array2<f64>, targets: Array2<f64>) -> f64 {
-    //     let mut errors = targets - &outputs;
-    //     let mut gradients = outputs.map(self.config.activation.derivative);
-    //     for i in (0..self.config.layers.len() - 1).rev() {
-    //         gradients = gradients * (&errors).mapv(|v| v * self.config.learning_rate);
-    //         self.weights[i] += &gradients.dot(&self.a[i].t());
-    //         self.biases[i] += &gradients;
-    //         errors = self.weights[i].t().dot(&errors);
-    //         gradients = self.a[i].map(self.config.activation.derivative);
-    //     }
-    //     // return mean-square error
-    //     errors = errors.mapv(|x| x * x);
-    //     errors.sum() / errors.len() as f64
-    // }
-
     fn zl(&self, l: usize) -> Array2<f64> {
         // NB: a[l] works here instead of a[l-1] because a[0] = x
         self.weights[l].dot(&self.a[l]) + &self.biases[l]
@@ -182,14 +168,6 @@ impl MLP {
 #[cfg(test)]
 mod test {
     use crate::mlp::{self, config::MLPConfig, mlp::MLP};
-
-    #[test]
-    fn test_for_range_loop() {
-        let i = 1;
-        for i in (0..i).rev() {
-            println!("{}", i);
-        }
-    }
 
     #[test]
     fn test_mlp_serialize_to_file() {

@@ -11,7 +11,6 @@ use crate::{
     db::LightState,
     mlp::{
         config::{MLPConfig, TrainingState},
-        fns::LOGISTIC,
         mlp::MLP,
     },
 };
@@ -75,7 +74,7 @@ pub async fn run(args: &TrainArgs) -> Result<(), ImportError> {
 
     let mut mlp = MLP::new(MLPConfig {
         layers: args.layers.clone(),
-        activation: LOGISTIC,
+        activation: crate::mlp::fns::TANH,
         learning_rate: args.learning_rate,
         training_state_updated: Some(|ts: TrainingState| {
             println!(
