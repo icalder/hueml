@@ -24,7 +24,7 @@ impl Default for MLPFunc {
 
 pub const LOGISTIC: MLPFunc = MLPFunc {
     function: |x| 1.0 / (1.0 + E.powf(-x)),
-    derivative: |x| x * (1.0 - x),
+    derivative: |x| (LOGISTIC.function)(x) * (1.0 - (LOGISTIC.function)(x)),
 };
 
 #[cfg(test)]

@@ -49,6 +49,7 @@ Duration rounding trait: https://github.com/chronotope/chrono/pull/445
 The first output time
  */
 impl LightTimeSeriesGenerator {
+    #[cfg(test)]
     pub fn with_sample_interval_mins(mut self, mins: u8) -> Self {
         self.sample_interval_mins = mins;
         self

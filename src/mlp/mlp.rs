@@ -80,8 +80,9 @@ impl MLP {
             "Invalid number of inputs"
         );
 
+        // self.a[0] is X
         let mut an = Array::from_shape_vec((self.config.layers[0], 1), inputs).unwrap();
-        self.a = vec![];
+        self.a = vec![an.clone()];
         for i in 0..self.config.layers.len() - 1 {
             let zn = &self.weights[i].dot(&an) + &self.biases[i];
             an = zn.mapv(|v| (self.config.activation.function)(&v));
@@ -99,6 +100,7 @@ impl MLP {
             for j in 0..inputs.len() {
                 self.feed_forward(inputs[j].clone());
                 mse = self.back_propagate(
+                    //self.a[self.config.layers.len() - 1].clone(),
                     Array::from_shape_vec(
                         (self.config.layers[self.config.layers.len() - 1], 1),
                         targets[j].clone(),
@@ -118,7 +120,7 @@ impl MLP {
         }
     }
 
-    // fn back_propagate(&mut self, outputs: Array2<f64>, targets: Array2<f64>) -> f64 {
+    // fn back_propagatex(&mut self, outputs: Array2<f64>, targets: Array2<f64>) -> f64 {
     //     let mut errors = targets - &outputs;
     //     let mut gradients = outputs.map(self.config.activation.derivative);
     //     for i in (0..self.config.layers.len() - 1).rev() {
@@ -133,40 +135,40 @@ impl MLP {
     //     errors.sum() / errors.len() as f64
     // }
 
-    // 3 layers e.g. 2[x],3[h],1[y]
-    // w1 from x to the hidden layer
-    // w2 from hidden layer to output
-    // z1 = w1 * x + b1
-    // a1 = f(z1)
-    // z2 = w2 * a1 + b2
-    // y = fout(z2)
+    fn zl(&self, l: usize) -> Array2<f64> {
+        // NB: a[l] works here instead of a[l-1] because a[0] = x
+        self.weights[l].dot(&self.a[l]) + &self.biases[l]
+    }
 
-    // https://drive.google.com/file/d/1QP64p8MGBfTHwucKCRFJxTRHfHdl9JLU/view
+    // x(a0) -> a1=sigma(z1) -> a2=sigma(z2)
+
+    // http://neuralnetworksanddeeplearning.com/chap2.html
+    // https://youtu.be/tIeHLnjs5U8?si=LYWn7ZYKv6FrOgcg
+    // zl = wl.(al−1) + bl
     fn back_propagate(&mut self, y: Array2<f64>) -> f64 {
-        // i is used to index a[] and w[] - these have size nlayers - 1 i.e. 0 .. nlayers - 2
-        let mut i = self.config.layers.len() - 2;
+        // sigma-prime: the derivitive of the activation function
+        let sigmap = self.config.activation.derivative;
+        // start with the last layer - e.g. l=2 for 3 layers (1 hidden layer) [0,1,2]
+        // NB: weight and bias layers are [0,1]
+        let l = self.config.layers.len() - 1;
+        let mut deltal = (&self.a[l] - &y) * self.zl(l - 1).mapv(|v| sigmap(&v));
+        let mut dw = deltal.dot(&self.a[l - 1].t());
+        let mut db = &deltal;
+        // see here for other optimisation algorithms: https://towardsdatascience.com/neural-network-optimizers-from-scratch-in-python-af76ee087aab/
+        self.weights[l - 1] -= &dw.mapv(|v| v * self.config.learning_rate);
+        self.biases[l - 1] -= &db.mapv(|v| v * self.config.learning_rate);
 
-        let mut dz = &self.a[i] - &y;
-        let mut dw = dz.dot(&self.a[i - 1].t());
-        let mut db = dz.sum();
-        self.weights[i] = &self.weights[i] - dw * self.config.learning_rate;
-        self.biases[i] -= db * self.config.learning_rate;
-
-        i -= 1;
-        while i > 0 {
-            // we need the derivative of the activation fn of the previous z layer
-            let z = &self.weights[i].dot(&self.a[i]) + &self.biases[i];
-            dz = self.weights[i + 1].t().dot(&dz)
-                * z.mapv(|x| (self.config.activation.derivative)(&x));
-            dw = dz.dot(&self.a[i].t());
-            db = dz.sum();
-            self.weights[i] = &self.weights[i] - dw * self.config.learning_rate;
-            self.biases[i] -= db * self.config.learning_rate;
-            i -= 1
+        for l in (0..self.config.layers.len() - 2).rev() {
+            deltal = self.weights[l + 1].t().dot(&deltal) * self.zl(l).mapv(|v| sigmap(&v));
+            // a[l] works here instead of a[l-1] because a[0] = x
+            dw = deltal.dot(&self.a[l].t());
+            db = &deltal;
+            self.weights[l] -= &dw.mapv(|v| v * self.config.learning_rate);
+            self.biases[l] -= &db.mapv(|v| v * self.config.learning_rate);
         }
-
-        dz = dz.mapv(|x| x * x);
-        dz.sum() / dz.len() as f64
+        // return mean-square error
+        deltal = deltal.mapv(|x| x * x);
+        deltal.sum() / deltal.len() as f64
     }
 
     pub fn dump(&self, path: &str) -> Result<(), std::io::Error> {
@@ -181,6 +183,14 @@ mod test {
     use crate::mlp::{self, config::MLPConfig, mlp::MLP};
 
     #[test]
+    fn test_for_range_loop() {
+        let i = 1;
+        for i in (0..i).rev() {
+            println!("{}", i);
+        }
+    }
+
+    #[test]
     fn test_mlp_serialize_to_file() {
         let inputs = vec![
             vec![0.0, 0.0],
@@ -188,7 +198,7 @@ mod test {
             vec![1.0, 0.0],
             vec![1.0, 1.0],
         ];
-        let targets = vec![vec![0.0], vec![1.0], vec![0.0], vec![1.0]];
+        let targets = vec![vec![0.0], vec![1.0], vec![1.0], vec![0.0]];
 
         let mut mlp = MLP::new(MLPConfig {
             layers: vec![2, 3, 1],
@@ -197,7 +207,7 @@ mod test {
             training_state_updated: None,
         });
 
-        mlp.train(inputs, targets, 100000);
+        mlp.train(inputs, targets, 10000);
         mlp.dump("data/mlp.json").unwrap();
 
         let mut mlp = MLP::load("data/mlp.json", None).unwrap();
@@ -209,18 +219,19 @@ mod test {
 
     #[test]
     fn test_mlp() {
+        // Train for XOR
         let inputs = vec![
             vec![0.0, 0.0],
             vec![0.0, 1.0],
             vec![1.0, 0.0],
             vec![1.0, 1.0],
         ];
-        let targets = vec![vec![0.0], vec![1.0], vec![0.0], vec![1.0]];
+        let targets = vec![vec![0.0], vec![1.0], vec![1.0], vec![0.0]];
 
         let mut mlp = MLP::new(MLPConfig {
             layers: vec![2, 3, 1],
             activation: mlp::fns::LOGISTIC,
-            learning_rate: 0.5,
+            learning_rate: 0.1,
             training_state_updated: None,
         });
 
@@ -232,10 +243,10 @@ mod test {
         println!("{:?}", mlp.feed_forward(vec![1.0, 1.0]));
 
         /*
-        [[0.001975319636582013]], shape=[1, 1], strides=[1, 1], layout=CFcf (0xf), const ndim=2
-        [[0.9983015657548819]], shape=[1, 1], strides=[1, 1], layout=CFcf (0xf), const ndim=2
-        [[0.0019549341093425374]], shape=[1, 1], strides=[1, 1], layout=CFcf (0xf), const ndim=2
-        [[0.9982879441701336]], shape=[1, 1], strides=[1, 1], layout=CFcf (0xf), const ndim=2
-                 */
+        [[0.010837591978139343]], shape=[1, 1], strides=[1, 1], layout=CFcf (0xf), const ndim=2
+        [[0.9896457406477849]], shape=[1, 1], strides=[1, 1], layout=CFcf (0xf), const ndim=2
+        [[0.989648726249577]], shape=[1, 1], strides=[1, 1], layout=CFcf (0xf), const ndim=2
+        [[0.010077380921864295]], shape=[1, 1], strides=[1, 1], layout=CFcf (0xf), const ndim=2
+                                 */
     }
 }

@@ -24,6 +24,8 @@ pub struct TrainArgs {
     layers: Vec<usize>,
     #[arg(long, default_value_t = 100)]
     epochs: u32,
+    #[arg(long, default_value_t = 0.2)]
+    learning_rate: f64,
     #[arg(short, long, default_value = "data/mlp.json")]
     mlp_filename: String,
 }
@@ -74,7 +76,7 @@ pub async fn run(args: &TrainArgs) -> Result<(), ImportError> {
     let mut mlp = MLP::new(MLPConfig {
         layers: args.layers.clone(),
         activation: LOGISTIC,
-        learning_rate: 0.5,
+        learning_rate: args.learning_rate,
         training_state_updated: Some(|ts: TrainingState| {
             println!(
                 "Epoch {} of {}; mse = {}",

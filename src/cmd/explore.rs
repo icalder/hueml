@@ -7,6 +7,12 @@ use crate::db;
 
 #[derive(Args)]
 pub struct ExploreArgs {
+    /// database connection
+    ///
+    /// example: // postgres://huebot:huebotpw@192.168.1.46:30529/huebot
+    /// $env:DATABASE_URL="postgres://huebot:huebotpw@192.168.1.46:30529/huebot"
+    #[arg(long, env = "DATABASE_URL")]
+    pub db_conn: String,
     /// from date, example: 2022-03-21
     #[arg(short, long, value_parser = parse_date)]
     from: chrono::NaiveDate,
@@ -15,10 +21,10 @@ pub struct ExploreArgs {
     to: chrono::NaiveDate,
 }
 
-pub async fn run(db_conn: &String, args: &ExploreArgs) -> Result<(), sqlx::Error> {
+pub async fn run(args: &ExploreArgs) -> Result<(), sqlx::Error> {
     let pool = PgPoolOptions::new()
         .max_connections(1)
-        .connect(db_conn)
+        .connect(&args.db_conn)
         .await?;
 
     let mut sql_buf = String::new();

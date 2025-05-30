@@ -9,13 +9,6 @@ use clap::{Parser, Subcommand};
 // NB: version from cargo.toml will be used by default
 #[command(version, about="ML for hue lights on/off prediction", long_about = None)]
 pub struct Cli {
-    /// database connection
-    ///
-    /// example: // postgres://huebot:huebotpw@192.168.1.46:30529/huebot
-    /// $env:DATABASE_URL="postgres://huebot:huebotpw@192.168.1.46:30529/huebot"
-    #[arg(long, env = "DATABASE_URL")]
-    pub db_conn: String,
-
     /// Sets a custom config file
     #[arg(short, long, value_name = "FILE")]
     pub config: Option<PathBuf>,

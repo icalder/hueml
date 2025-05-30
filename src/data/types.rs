@@ -16,7 +16,4 @@ impl LightSample {
             0.0
         }
     }
-    pub fn off(&self) -> f64 {
-        1.0 - self.on()
-    }
 }

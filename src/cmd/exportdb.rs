@@ -15,6 +15,12 @@ use crate::{
 
 #[derive(Args)]
 pub struct ExportDBArgs {
+    /// database connection
+    ///
+    /// example: // postgres://huebot:huebotpw@192.168.1.46:30529/huebot
+    /// $env:DATABASE_URL="postgres://huebot:huebotpw@192.168.1.46:30529/huebot"
+    #[arg(long, env = "DATABASE_URL")]
+    pub db_conn: String,
     #[arg(short, long)]
     filename: String,
     /// from date, example: 2022-03-21
@@ -110,10 +116,10 @@ pub async fn write_parquet(
     Ok(())
 }
 
-pub async fn run(db_conn: &String, args: &ExportDBArgs) -> Result<(), ExportDBError> {
+pub async fn run(args: &ExportDBArgs) -> Result<(), ExportDBError> {
     let pool = PgPoolOptions::new()
         .max_connections(1)
-        .connect(db_conn)
+        .connect(&args.db_conn)
         .await?;
 
     let mut sql_buf = String::new();
